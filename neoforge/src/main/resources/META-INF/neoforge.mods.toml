@@ -8,6 +8,7 @@ license="https://github.com/LootrMinecraft/SaveLootTables/blob/arch-1.21/LICENSE
     displayName="Save Loot Tables"
     displayURL="https://minecraft.curseforge.com/projects/save-loot-tables"
     authors="Noobanidus"
+    logoFile="assets/logo.png"
     description="Prevent Vanilla from discarding loot tables when one or more entries are invalid."
 
 [[mixins]]
