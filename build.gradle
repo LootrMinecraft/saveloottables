@@ -1,0 +1,221 @@
+plugins {
+    id "architectury-plugin" version "3.4-SNAPSHOT"
+    id "dev.architectury.loom" version "1.6-SNAPSHOT" apply false
+    id 'io.github.juuxel.loom-vineflower' version '1.11.0' apply false
+    id "me.modmuss50.mod-publish-plugin" version "0.5.1"
+}
+
+architectury {
+    minecraft = rootProject.minecraft_version
+}
+
+def getExecOutput(commands) {
+
+    def out = new ByteArrayOutputStream()
+
+    exec {
+        commandLine commands
+        standardOutput out
+    }
+
+    return out.toString().trim();
+}
+
+subprojects {
+    apply plugin: "dev.architectury.loom"
+    apply plugin: "me.modmuss50.mod-publish-plugin"
+
+    version = "${rootProject.mod_version}-${rootProject.minecraft_version}-${name}"
+
+    loom {
+        silentMojangMappingsLicense()
+    }
+
+    dependencies {
+        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+        mappings loom.officialMojangMappings()
+    }
+
+    Map<String, Map<String, String>> platformSettings = [
+            "fabric": [
+                    "curse-id": "615106",
+                    "curse-slug": "saveloottables",
+                    "modrinth-id": "EltpO5cN",
+                    "title": "for Fabric"
+            ],
+            "neoforge": [
+                    "curse-id": "361276",
+                    "curse-slug": "saveloottables",
+                    "modrinth-id": "EltpO5cN",
+                    "title": "for NeoForge"
+            ]
+    ]
+
+    Map<String, Map<String, Boolean>> platformDependencies = [
+            "fabric": [
+                    "fabric-api": true
+            ],
+            "neoforge": [
+            ]
+    ]
+
+    var env = System.getenv()
+    def uploadSettings = platformSettings.get(name)
+    def uploadDependencies = platformDependencies.get(name)
+
+    def gitRepo = getExecOutput(['git', 'remote', 'get-url', 'origin'])
+    def gitCommit = getExecOutput(['git', 'log', '-n', '1', '--pretty=tformat:%h'])
+    def gitPrevCommit = project.findProperty("git_previous_commit") ?: env["GIT_PREVIOUS_COMMIT"]
+
+
+    String changelogText = ""
+
+    if (gitCommit && gitPrevCommit) {
+        changelogText += getExecOutput(['git', 'log', "--pretty=tformat:- %s [(%h)](${gitRepo}/commit/%h)", '' + gitPrevCommit + '..' + gitCommit])
+    }
+
+    // Limit the changelog to 500 characters
+    changelogText = changelogText.take(500)
+
+
+    if (uploadSettings != null && uploadDependencies != null) {
+
+        //File changeLog = rootProject.file("CHANGELOG.md")
+        //String changelogText = changeLog.exists() ? changeLog.text : ""
+
+        publishMods {
+            file = tasks.remapJar.archiveFile
+            type = STABLE
+            changelog = changelogText
+
+            displayName = "saveloottables-${name}-${rootProject.minecraft_version}-${rootProject.mod_version}"
+            version = "${rootProject.mod_version}"
+            modLoaders.add(name)
+
+            if (project.hasProperty("curse_auth")) {
+                curseforge {
+                    accessToken = project.findProperty("curse_auth")
+                    projectId = uploadSettings["curse-id"]
+                    projectSlug = uploadSettings["curse-slug"]
+                    announcementTitle = "SaveLootTables ${rootProject.minecraft_version}-${rootProject.mod_version} ${uploadSettings["title"]} on CurseForge"
+                    // TODO: Hard-coded
+                    minecraftVersions.add(rootProject.minecraft_version)
+                    minecraftVersions.add("1.21.1")
+
+                    if (uploadDependencies.size() > 0) {
+                        uploadDependencies.each { dep, required ->
+                            if (required) {
+                                requires(dep)
+                            }
+                            else {
+                                optional(dep)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (project.hasProperty("modrinth_auth")) {
+                modrinth {
+                    accessToken = project.findProperty("modrinth_auth")
+                    projectId = uploadSettings["modrinth-id"]
+                    announcementTitle = "SaveLootTables ${rootProject.minecraft_version}-${rootProject.mod_version} ${uploadSettings["title"]} on Modrinth"
+                    // TODO: Hard-coded
+                    minecraftVersions.add(rootProject.minecraft_version)
+                    minecraftVersions.add("1.21.1")
+
+                    dependencies {
+                        uploadDependencies.each { dep, required ->
+                            if (required) {
+                                requires(dep)
+                            } else {
+                                optional(dep)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (project.hasProperty("curse_discord_webhook")) {
+                discord {
+                    webhookUrl = project.findProperty("curse_discord_webhook")
+                    username = "Save Loot Tables Update"
+                    setPlatforms(publishMods.platforms.curseforge, publishMods.platforms.modrinth)
+                }
+            }
+        }
+    }
+}
+
+allprojects {
+    apply plugin: "java"
+    apply plugin: "architectury-plugin"
+    apply plugin: "maven-publish"
+
+    archivesBaseName = "${rootProject.mod_id}-${name}"
+    version = "${rootProject.minecraft_version}-${rootProject.mod_version}"
+    group = rootProject.maven_group
+
+    repositories {
+        mavenLocal()
+        maven {
+            url "https://maven.neoforged.net/releases/"
+        }
+        maven {
+            url = 'https://api.modrinth.com/maven/'
+            content {
+                includeGroup 'maven.modrinth'
+            }
+        }
+        maven {
+            url = 'https://www.cursemaven.com'
+            content {
+                includeGroup 'curse.maven'
+            }
+        }
+        maven {
+            url = 'https://maven.shedaniel.me'
+            content {
+                includeGroup 'me.shedaniel.cloth'
+                includeGroup 'me.shedaniel'
+            }
+        }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+        options.release = 21
+    }
+
+    java {
+        withSourcesJar()
+    }
+
+    task optimizePng {
+        def pngPatterns = ["**/*.png"]
+        doFirst {
+            println 'Executing oxipng task...'
+        }
+        doLast {
+            //Ensure the logo is minimized (we add this file to each jar)
+            //Minimize any PNGs in the source sets
+            for (dir in sourceSets.main.resources.srcDirs) {
+                fileTree(dir: dir, includes: pngPatterns).each { minimizePNGFile(it) }
+            }
+            println 'Finished oxipng task...'
+        }
+    }
+}
+
+//Minimize/optimize all png files, requires optipng on the PATH
+// Credits: BrainStone
+void minimizePNGFile(File file) {
+    exec {
+        executable "./oxipng.exe"
+        args "-o", "6", "-i", "0", "--strip", "all", "-a", "-Z", file
+    }
+}
+
+task buildAndReleaseAll{
+    dependsOn(':common:buildAndRelease', ':neoforge:buildAndRelease', ':fabric:buildAndRelease')
+}

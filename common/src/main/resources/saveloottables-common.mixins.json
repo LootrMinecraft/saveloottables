@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "noobanidus.mods.saveloottables.common.mixins",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "MixinLootDataType"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "minVersion": "0.8"
+}
