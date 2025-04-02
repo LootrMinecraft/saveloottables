@@ -2,10 +2,24 @@ plugins {
     id 'dev.architectury.loom' version '1.7-SNAPSHOT' apply false
     id 'architectury-plugin' version '3.4-SNAPSHOT'
     id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
+    id "me.modmuss50.mod-publish-plugin" version "0.5.1"
 }
 
 architectury {
     minecraft = project.minecraft_version
+}
+
+
+def getExecOutput(commands) {
+
+    def out = new ByteArrayOutputStream()
+
+    exec {
+        commandLine commands
+        standardOutput out
+    }
+
+    return out.toString().trim();
 }
 
 allprojects {
@@ -17,6 +31,7 @@ subprojects {
     apply plugin: 'dev.architectury.loom'
     apply plugin: 'architectury-plugin'
     apply plugin: 'maven-publish'
+    apply plugin: "me.modmuss50.mod-publish-plugin"
 
     base {
         // Set up a suffixed format for the mod jar names, e.g. `example-fabric`.
@@ -38,6 +53,113 @@ subprojects {
     dependencies {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
         mappings loom.officialMojangMappings()
+    }
+
+    Map<String, Map<String, String>> platformSettings = [
+            "fabric": [
+                    "curse-id": "1230370",
+                    "curse-slug": "saveloottables",
+                    "modrinth-id": "uWdzDOrP",
+                    "title": "for Fabric"
+            ],
+            "neoforge": [
+                    "curse-id": "1230370",
+                    "curse-slug": "saveloottables",
+                    "modrinth-id": "uWdzDOrP",
+                    "title": "for NeoForge"
+            ]
+    ]
+
+    Map<String, Map<String, Boolean>> platformDependencies = [
+            "fabric": [
+                    "fabric-api": true
+            ],
+            "neoforge": [
+            ]
+    ]
+
+    var env = System.getenv()
+    def uploadSettings = platformSettings.get(name)
+    def uploadDependencies = platformDependencies.get(name)
+
+    def gitRepo = getExecOutput(['git', 'remote', 'get-url', 'origin'])
+    def gitCommit = getExecOutput(['git', 'log', '-n', '1', '--pretty=tformat:%h'])
+    def gitPrevCommit = project.findProperty("git_previous_commit") ?: env["GIT_PREVIOUS_COMMIT"]
+
+
+    String changelogText = ""
+
+    if (gitCommit && gitPrevCommit) {
+        changelogText += getExecOutput(['git', 'log', "--pretty=tformat:- %s [(%h)](${gitRepo}/commit/%h)", '' + gitPrevCommit + '..' + gitCommit])
+    }
+
+    // Limit the changelog to 500 characters
+    changelogText = changelogText.take(500)
+
+
+    if (uploadSettings != null && uploadDependencies != null) {
+
+        //File changeLog = rootProject.file("CHANGELOG.md")
+        //String changelogText = changeLog.exists() ? changeLog.text : ""
+
+        publishMods {
+            file = tasks.remapJar.archiveFile
+            type = STABLE
+            changelog = changelogText
+
+            displayName = "saveloottables-${name}-${rootProject.minecraft_version}-${rootProject.mod_version}"
+            version = "${rootProject.mod_version}"
+            modLoaders.add(name)
+
+            if (project.hasProperty("curse_auth")) {
+                curseforge {
+                    accessToken = project.findProperty("curse_auth")
+                    projectId = uploadSettings["curse-id"]
+                    projectSlug = uploadSettings["curse-slug"]
+                    announcementTitle = "SaveLootTables ${rootProject.minecraft_version}-${rootProject.mod_version} ${uploadSettings["title"]} on CurseForge"
+                    minecraftVersions.add(rootProject.minecraft_version)
+
+                    if (uploadDependencies.size() > 0) {
+                        uploadDependencies.each { dep, required ->
+                            if (required) {
+                                requires(dep)
+                            }
+                            else {
+                                optional(dep)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (project.hasProperty("modrinth_auth")) {
+                modrinth {
+                    accessToken = project.findProperty("modrinth_auth")
+                    projectId = uploadSettings["modrinth-id"]
+                    announcementTitle = "SaveLootTables ${rootProject.minecraft_version}-${rootProject.mod_version} ${uploadSettings["title"]} on Modrinth"
+                    // TODO: Hard-coded
+                    minecraftVersions.add(rootProject.minecraft_version)
+
+                    dependencies {
+                        uploadDependencies.each { dep, required ->
+                            if (required) {
+                                requires(dep)
+                            } else {
+                                optional(dep)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (project.hasProperty("curse_discord_webhook")) {
+                discord {
+                    webhookUrl = project.findProperty("curse_discord_webhook")
+                    username = "Save Loot Tables Update"
+                    setPlatforms(publishMods.platforms.curseforge, publishMods.platforms.modrinth)
+                }
+            }
+        }
     }
 
     java {
