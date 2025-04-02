@@ -1,0 +1,27 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+issueTrackerURL = "https://github.com/LootrMinecraft/SaveLootTables/issues"
+license = "MIT"
+
+[[mods]]
+modId = "saveloottables"
+version = "${version}"
+displayName = "Save Loot Tables"
+displayURL="https://minecraft.curseforge.com/projects/save-loot-tables"
+authors="Noobanidus"
+logoFile="assets/logo.png"
+description="Prevent Vanilla from discarding loot tables when one or more entries are invalid."
+
+[[dependencies.saveloottables]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.saveloottables]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,)"
+ordering = "NONE"
+side = "BOTH"

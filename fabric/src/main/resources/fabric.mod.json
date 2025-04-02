@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "saveloottables",
+  "version": "${version}",
+  "name": "SaveLootTables",
+  "description": "Prevent Vanilla from discarding loot tables when one or more entries are invalid.",
+  "authors": [
+    "Noobanidus"
+  ],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/saveloottables",
+    "sources": "https://github.com/LootrMinecraft/SaveLootTables/tree/arch-1.21",
+    "issues": "https://github.com/LootrMinecraft/SaveLootTables/issues"
+  },
+  "license": "MIT License",
+  "icon": "assets/logo.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "noobanidus.mods.saveloottables.fabric.SaveLootTables"
+    ]
+  },
+  "mixins": [
+    "saveloottables.mixins.json",
+    "saveloottables-fabric.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
+}

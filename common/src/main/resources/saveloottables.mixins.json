@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "noobanidus.mods.saveloottables.mixins",
+  "compatibilityLevel": "JAVA_17",
+  "minVersion": "0.8",
+  "client": [
+  ],
+  "mixins": [
+    "AccessorMixinLootItem",
+    "MixinLootItem$Serializer"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
