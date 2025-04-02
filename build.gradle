@@ -56,17 +56,17 @@ subprojects {
     }
 
     Map<String, Map<String, String>> platformSettings = [
-            "fabric": [
+/*            "fabric": [
                     "curse-id": "1230370",
                     "curse-slug": "saveloottables",
                     "modrinth-id": "uWdzDOrP",
                     "title": "for Fabric"
-            ],
-            "neoforge": [
+            ],*/
+            "forge": [
                     "curse-id": "1230370",
                     "curse-slug": "saveloottables",
                     "modrinth-id": "uWdzDOrP",
-                    "title": "for NeoForge"
+                    "title": "for Forge"
             ]
     ]
 
@@ -74,7 +74,7 @@ subprojects {
             "fabric": [
                     "fabric-api": true
             ],
-            "neoforge": [
+            "forge": [
             ]
     ]
 
