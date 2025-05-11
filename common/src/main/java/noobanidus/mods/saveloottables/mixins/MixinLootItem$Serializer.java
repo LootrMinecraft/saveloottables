@@ -19,7 +19,7 @@ public class MixinLootItem$Serializer {
     try {
       item = GsonHelper.getAsItem(p_13910_, p_13911_);
     } catch (JsonSyntaxException exception) {
-      item = Items.BARRIER;
+      item = Items.AIR;
       SaveLootTables.LOG.error("Caught an exception while trying to get item from loot table: '{}' does not exist in the item registry.", GsonHelper.getAsString(p_13910_, p_13911_));
       SaveLootTables.LOG.error("This entry in the loot table has been ignored. Original error is as follows:");
       for (StackTraceElement element : exception.getStackTrace()) {
